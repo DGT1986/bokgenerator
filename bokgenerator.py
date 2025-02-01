@@ -5,13 +5,16 @@ from dotenv import load_dotenv
 
 # Last inn API-nøkkel fra .env-fil
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+
+# Opprett en OpenAI-klient med den nye metoden
+client = openai.OpenAI(api_key=api_key)
 
 # Funksjon for å generere bokkapitler
 def generer_kapitler(emne):
     prompt = f"Lag en kapitteloversikt for en bok om emnet: {emne}. Fokuser på 'how-to' stil."
     
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "Du er en ekspert på bokskriving."},
@@ -20,13 +23,13 @@ def generer_kapitler(emne):
         temperature=0.7
     )
     
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 # Funksjon for nøkkelord-analyse
 def generer_nokkelord(emne):
     prompt = f"Hvilke nøkkelord og kategorier er best for en bok om {emne} på Amazon KDP?"
     
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "Du er en markedsføringsassistent for selvpublisering."},
@@ -35,7 +38,7 @@ def generer_nokkelord(emne):
         temperature=0.7
     )
     
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 # Streamlit-app for grensesnitt
 st.title("Bokgenerator for Passiv Inntekt")
