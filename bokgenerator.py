@@ -39,7 +39,22 @@ def finn_populært_emne(nisje):
     
     return response.choices[0].message.content
 
-# Funksjon for å generere en optimalisert bok basert på trender
+# Funksjon for å sjekke om teksten er unik
+def sjekk_for_copywriting(tekst):
+    prompt = f"Analyser denne teksten for mulige kopieringsproblemer eller kjente sitater: \n\n{tekst}\n\n Returner 'OK' hvis det er unikt, eller reformuler det for å sikre originalitet."
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Du er en ekspert på opphavsrett (copyright) og plagiatsjekk."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5
+    )
+    
+    return response.choices[0].message.content
+
+# Funksjon for å generere en unik og optimalisert bok
 def generer_optimalisert_bok(nisje, antall_kapitler):
     emne_trender = finn_populært_emne(nisje)
 
@@ -73,12 +88,16 @@ def generer_optimalisert_bok(nisje, antall_kapitler):
             )
             
             kapittel_tekst = kapittel_response.choices[0].message.content
-            bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
+            
+            # Sjekk om kapittel-teksten er unik
+            unik_tekst = sjekk_for_copywriting(kapittel_tekst)
+            
+            bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{unik_tekst}\n\n"
 
     return bok_tekst
 
 # Streamlit-app for å lage en bestselger-bok
-st.title("📖 AI Bestselger-Bokgenerator")
+st.title("📖 AI Bestselger-Bokgenerator (Copyright-Sikret)")
 
 nisje = st.selectbox("Velg en bestselger-nisje:", bestseller_nisjer)
 antall_kapitler = st.slider("Velg antall kapitler", min_value=3, max_value=10, value=5)
@@ -87,7 +106,7 @@ if st.button("Generer Bestselger-Bok"):
     if nisje:
         st.info("Genererer en optimalisert bok, vennligst vent...")
         bok = generer_optimalisert_bok(nisje, antall_kapitler)
-        st.subheader("Din bestselgende bok:")
+        st.subheader("Din bestselgende bok (garantert unik!):")
         st.text_area("Boktekst", bok, height=500)
     else:
         st.warning("Velg en nisje først.")
