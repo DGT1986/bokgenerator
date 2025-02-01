@@ -15,7 +15,7 @@ def generer_kapitler(emne):
     prompt = f"Lag en kapitteloversikt for en bok om emnet: {emne}. Fokuser på 'how-to' stil."
 
     response = client.chat.completions.create(
-        model="gpt-4-turbo",  # Prøv også "gpt-3.5-turbo" hvis det ikke funker
+        model="gpt-3.5-turbo",  # Byttet fra "gpt-4-turbo"
         messages=[
             {"role": "system", "content": "Du er en ekspert på bokskriving."},
             {"role": "user", "content": prompt}
@@ -30,7 +30,7 @@ def generer_nokkelord(emne):
     prompt = f"Hvilke nøkkelord og kategorier er best for en bok om {emne} på Amazon KDP?"
     
     response = client.chat.completions.create(
-        model="gpt-4-turbo",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "Du er en markedsføringsassistent for selvpublisering."},
             {"role": "user", "content": prompt}
