@@ -8,8 +8,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Funksjon for å generere bokkapitler
 def generer_kapitler(emne):
     prompt = f"Lag en kapitteloversikt for en bok om emnet: {emne}. Fokuser på 'how-to' stil."
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
+response = openai.client.chat.completions.create(        model="gpt-4",
         messages=[
             {"role": "system", "content": "Du er en ekspert på bokskriving."},
             {"role": "user", "content": prompt}
