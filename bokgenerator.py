@@ -1,7 +1,6 @@
 import openai
 import os
 import streamlit as st
-import pdfkit
 import requests
 from ebooklib import epub
 from dotenv import load_dotenv
@@ -85,39 +84,11 @@ def generer_bok(nisje, antall_kapitler):
 
     return bok_tekst
 
-# Funksjon for å lage PDF
-def lag_pdf(boktittel, bokinnhold):
-    options = {"page-size": "A4", "encoding": "UTF-8"}
-    filnavn = f"{boktittel}.pdf"
-    pdfkit.from_string(bokinnhold, filnavn, options=options)
-    return filnavn
-
-# Funksjon for å lage EPUB
-def lag_epub(boktittel, bokinnhold):
-    bok = epub.EpubBook()
-    bok.set_title(boktittel)
-    bok.set_language("en")
-    
-    kapitler = bokinnhold.split("## ")
-    epub_kapitler = []
-    
-    for i, kapittel in enumerate(kapitler):
-        if i == 0:
-            continue  # Skipper hovedtittel
-        tittel, tekst = kapittel.split("\n", 1)
-        c = epub.EpubHtml(title=tittel.strip(), file_name=f"kapittel_{i}.xhtml", lang="en")
-        c.content = f"<h1>{tittel.strip()}</h1><p>{tekst.strip()}</p>"
-        bok.add_item(c)
-        epub_kapitler.append(c)
-    
-    # Sett opp navigasjon og metadata
-    bok.add_item(epub.EpubNcx())
-    bok.add_item(epub.EpubNav())
-    bok.spine = ["nav"] + epub_kapitler
-
-    # Lagre EPUB
-    filnavn = f"{boktittel}.epub"
-    epub.write_epub(filnavn, bok)
+# Funksjon for å lage en nedlastbar tekstfil
+def lag_txt(boktittel, bokinnhold):
+    filnavn = f"{boktittel}.txt"
+    with open(filnavn, "w", encoding="utf-8") as f:
+        f.write(bokinnhold)
     return filnavn
 
 # Streamlit-app
@@ -130,8 +101,7 @@ if st.button("Generer Bok"):
     if nisje:
         st.info("Genererer boken, vennligst vent...")
         boktekst = generer_bok(nisje, antall_kapitler)
-        pdf_fil = lag_pdf(nisje, boktekst)
-        epub_fil = lag_epub(nisje, boktekst)
+        txt_fil = lag_txt(nisje, boktekst)
         metadata = generer_metadata(nisje, nisje)
         omslag_fil = generer_omslag(nisje)
 
@@ -139,8 +109,7 @@ if st.button("Generer Bok"):
         st.text_area("Boktekst", boktekst, height=500)
 
         st.subheader("📥 Last ned boken:")
-        st.download_button("📥 Last ned som PDF", open(pdf_fil, "rb"), file_name=pdf_fil)
-        st.download_button("📥 Last ned som EPUB", open(epub_fil, "rb"), file_name=epub_fil)
+        st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
 
         st.subheader("📢 SEO-optimalisert beskrivelse:")
         st.text_area("Beskrivelse og nøkkelord", metadata, height=150)
