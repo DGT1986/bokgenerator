@@ -40,66 +40,8 @@ språkvalg = {
     "Portugisisk": "pt"
 }
 
-# 🔹 Funksjoner for optimalisering
-
-def analyser_og_rate_bok(boktekst, nisje, språk):
-    prompt = f"""
-    Evaluer denne teksten opp mot bestselgende bøker innen {nisje} på Amazon KDP. 
-    Gi en score fra 1-100 basert på:
-    - Lesbarhet
-    - Engasjement
-    - SEO-optimalisering
-    - Kommersiell appell
-    Gi også forbedringsforslag for å øke salget. Skriv svaret på {språk}.
-    
-    Tekst:
-    {boktekst}
-    """
-    
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
-    return response.choices[0].message.content
-
-def foreslå_bokpris(nisje, språk):
-    prompt = f"""
-    Analyser prisene på de bestselgende bøkene innen {nisje} på Amazon KDP og foreslå en optimal prisstrategi 
-    for å maksimere volum-salg. Vurder:
-    - Anbefalt prisnivå for Kindle e-bok, paperback og hardcover.
-    - Psykologiske prispunkter som gir høyere konvertering ($2.99, $4.99, $9.99 osv.).
-    - Hvordan Kindle Unlimited kan påvirke salget.
-    - Kampanjestrategier for å booste volum.
-    - Hva de mest suksessrike forfatterne innen {nisje} gjør med prissetting.
-    
-    Skriv svaret på {språk}.
-    """
-    
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
-    return response.choices[0].message.content
-
-# 🔹 Streamlit-app
-st.title("📖 AI Bestselger-Bokgenerator for Amazon KDP")
-
-ekspertmodus = st.checkbox("Ekspertmodus: Aktiver alle optimaliseringsverktøy")
-analysemodus = st.checkbox("Analysemodus: Evaluer bokens salgspotensial")
-
-språk = st.selectbox("Velg språk for boken:", list(språkvalg.keys()))
-kategori = st.selectbox("Velg en bestselgende kategori:", ["Velg en kategori..."] + bestseller_nisjer)
-antall_kapitler = st.slider("Velg antall kapitler", min_value=3, max_value=10, value=5)
-
-if st.button("Generer Bok"):
-    st.info("Genererer boken, vennligst vent...")
-    valgt_språk = språkvalg[språk]
-    
-    def generer_bok(nisje, antall_kapitler, språk):
+# 🔹 Funksjon for å generere fullstendige kapitler
+def generer_bok(nisje, antall_kapitler, språk):
     kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
     
     kapittel_response = client.chat.completions.create(
@@ -130,3 +72,87 @@ if st.button("Generer Bok"):
             bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
 
     return bok_tekst
+
+# 🔹 Funksjon for å analysere og rate bokens salgspotensial
+def analyser_og_rate_bok(boktekst, nisje, språk):
+    prompt = f"""
+    Evaluer denne teksten opp mot bestselgende bøker innen {nisje} på Amazon KDP. 
+    Gi en score fra 1-100 basert på:
+    - Lesbarhet
+    - Engasjement
+    - SEO-optimalisering
+    - Kommersiell appell
+    Gi også forbedringsforslag for å øke salget. Skriv svaret på {språk}.
+    
+    Tekst:
+    {boktekst}
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+    
+    return response.choices[0].message.content
+
+# 🔹 Funksjon for volum-basert prisstrategi
+def foreslå_bokpris(nisje, språk):
+    prompt = f"""
+    Analyser prisene på de bestselgende bøkene innen {nisje} på Amazon KDP og foreslå en optimal prisstrategi 
+    for å maksimere volum-salg. Vurder:
+    - Anbefalt prisnivå for Kindle e-bok, paperback og hardcover.
+    - Psykologiske prispunkter som gir høyere konvertering ($2.99, $4.99, $9.99 osv.).
+    - Hvordan Kindle Unlimited kan påvirke salget.
+    - Kampanjestrategier for å booste volum.
+    - Hva de mest suksessrike forfatterne innen {nisje} gjør med prissetting.
+    
+    Skriv svaret på {språk}.
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+    
+    return response.choices[0].message.content
+
+# 🔹 Funksjon for å lage en nedlastbar tekstfil
+def lag_txt(boktittel, bokinnhold):
+    filnavn = f"{boktittel}.txt"
+    with open(filnavn, "w", encoding="utf-8") as f:
+        f.write(bokinnhold)
+    return filnavn
+
+# 🔹 Streamlit-app
+st.title("📖 AI Bestselger-Bokgenerator for Amazon KDP")
+
+ekspertmodus = st.checkbox("Ekspertmodus: Aktiver alle optimaliseringsverktøy")
+analysemodus = st.checkbox("Analysemodus: Evaluer bokens salgspotensial")
+
+språk = st.selectbox("Velg språk for boken:", list(språkvalg.keys()))
+kategori = st.selectbox("Velg en bestselgende kategori:", ["Velg en kategori..."] + bestseller_nisjer)
+antall_kapitler = st.slider("Velg antall kapitler", min_value=3, max_value=10, value=5)
+
+if st.button("Generer Bok"):
+    st.info("Genererer boken, vennligst vent...")
+    valgt_språk = språkvalg[språk]
+    
+    # Generer boktekst
+    boktekst = generer_bok(kategori, antall_kapitler, valgt_språk)
+    txt_fil = lag_txt(kategori, boktekst)
+
+    st.subheader("📖 Din Genererte Bok:")
+    st.text_area("Boktekst", boktekst, height=500)
+    st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
+
+    if ekspertmodus:
+        st.subheader("💰 Anbefalt bokpris:")
+        prisstrategi = foreslå_bokpris(kategori, valgt_språk)
+        st.text_area("Prisstrategi", prisstrategi, height=100)
+
+    if analysemodus:
+        st.subheader("📊 Analyse av bokens salgspotensial:")
+        analyse_resultat = analyser_og_rate_bok(boktekst, kategori, valgt_språk)
+        st.text_area("Analyse og forbedringer", analyse_resultat, height=200)
