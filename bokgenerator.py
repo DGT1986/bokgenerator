@@ -40,112 +40,96 @@ språkvalg = {
     "Portugisisk": "pt"
 }
 
-# Funksjon for å analysere trender og anbefale bestselgende KDP-kategorier
+# 🔹 Funksjoner for optimalisering
+
 def finn_bestselgende_kategorier():
     prompt = "Analyser Amazon KDP-trender og gi en liste over de 5 bestselgende bokkategoriene akkurat nå. Forklar hvorfor de selger godt."
-    
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
     return response.choices[0].message.content
 
-# Funksjon for å gi AI-anbefalte emner basert på KDP-trender
 def foreslå_emner(kategori):
-    prompt = f"Basert på den bestselgende KDP-kategorien '{kategori}', foreslå 5 spesifikke bokemner som er populære akkurat nå. Inkluder hvorfor de selger godt."
-    
+    prompt = f"Foreslå 5 spesifikke bokemner innen {kategori} som selger godt akkurat nå. Inkluder hvorfor de er populære."
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
     return response.choices[0].message.content
 
-# Funksjon for å generere en optimalisert boktittel og beskrivelse
 def generer_tittel_og_beskrivelse(nisje, språk):
-    prompt = f"Generer en bestselgende boktittel og en kort beskrivelse for en bok innen nisjen {nisje}, skrevet på {språk}. Tittelen skal være engasjerende og optimalisert for Amazon KDP."
-    
+    prompt = f"Generer en bestselgende boktittel og en SEO-optimalisert beskrivelse for en bok innen {nisje}, skrevet på {språk}."
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
     return response.choices[0].message.content
 
-# Funksjon for å generere et bokomslag med bedre KDP-optimalisering
+def generer_nøkkelord(nisje, språk):
+    prompt = f"Generer en liste over de mest relevante Amazon KDP-søkeordene for en bok innen {nisje}, skrevet på {språk}."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
+    return response.choices[0].message.content
+
+def foreslå_bokpris(nisje, språk):
+    prompt = f"Analyser prisene på de bestselgende bøkene innen {nisje} på Amazon KDP og foreslå en optimal prisstrategi."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
+    return response.choices[0].message.content
+
+def generer_call_to_action(nisje, språk):
+    prompt = f"Generer en sterk Call-to-Action (CTA) for en bok innen {nisje} som oppfordrer leseren til videre handling."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], temperature=0.7)
+    return response.choices[0].message.content
+
 def generer_omslag(tittel, kategori):
-    prompt = f"Lag et profesjonelt bokomslag for boken '{tittel}'. Designet bør være optimalisert for Amazon KDP, med høy kontrast, lettlest font og en stil som passer til kategorien {kategori}."
-    
+    prompt = f"Lag et profesjonelt bokomslag for '{tittel}', optimalisert for Amazon KDP, innen kategorien {kategori}."
     response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        size="1024x1024"
-    )
-    
+        model="dall-e-3", prompt=prompt, size="1024x1024")
     image_url = response.data[0].url
     image_response = requests.get(image_url)
     image = Image.open(BytesIO(image_response.content))
-    
     filnavn = f"{tittel}_omslag.jpg"
     image.save(filnavn)
     return filnavn
 
-# Funksjon for å generere bokinnhold basert på optimalisert emne
-def generer_bok(nisje, antall_kapitler, språk):
-    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
-    
-    kapittel_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": kapittel_prompt}],
-        temperature=0.7
-    )
-    
-    kapitler = kapittel_response.choices[0].message.content.split("\n")
-
-    bok_tekst = f"# {nisje} - AI-generert bok ({språk})\n\n"
-    for i, kapittel in enumerate(kapitler[:antall_kapitler]):
-        if kapittel.strip():
-            kapittel_prompt = f"Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}, skrevet på {språk}. Inkluder actionable tips og eksempler."
-            kapittel_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": kapittel_prompt}],
-                temperature=0.7
-            )
-            kapittel_tekst = kapittel_response.choices[0].message.content
-            bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
-
-    return bok_tekst
-
-# Funksjon for å lage en nedlastbar tekstfil
-def lag_txt(boktittel, bokinnhold):
-    filnavn = f"{boktittel}.txt"
-    with open(filnavn, "w", encoding="utf-8") as f:
-        f.write(bokinnhold)
-    return filnavn
-
-# Streamlit-app
+# 🔹 Streamlit-app
 st.title("📖 AI Bestselger-Bokgenerator for Amazon KDP")
 
-# Språkvalg
-språk = st.selectbox("Velg språk for boken:", list(språkvalg.keys()))
+ekspertmodus = st.checkbox("Ekspertmodus: Aktiver alle optimaliseringsverktøy")
 
-# Kategori og innhold
+if st.button("Analyser Amazon KDP-markedet"):
+    st.info("Henter trender...")
+    beste_kategorier = finn_bestselgende_kategorier()
+    st.subheader("🔥 Bestselgende KDP-kategorier:")
+    st.text_area("Beste Kategorier", beste_kategorier, height=200)
+
+språk = st.selectbox("Velg språk for boken:", list(språkvalg.keys()))
 kategori = st.selectbox("Velg en bestselgende kategori:", ["Velg en kategori..."] + bestseller_nisjer)
 antall_kapitler = st.slider("Velg antall kapitler", min_value=3, max_value=10, value=5)
 
+if ekspertmodus:
+    st.subheader("📌 Optimalisert Boktittel og Beskrivelse:")
+    optimal_tittel = generer_tittel_og_beskrivelse(kategori, språkvalg[språk])
+    st.text_area("Tittel og Beskrivelse", optimal_tittel, height=150)
+
+    st.subheader("🔍 Beste nøkkelord:")
+    nøkkelord = generer_nøkkelord(kategori, språkvalg[språk])
+    st.text_area("Amazon KDP nøkkelord", nøkkelord, height=100)
+
+    st.subheader("💰 Anbefalt bokpris:")
+    prisstrategi = foreslå_bokpris(kategori, språkvalg[språk])
+    st.text_area("Prisstrategi", prisstrategi, height=100)
+
+    st.subheader("🎯 Call-to-Action for mersalg:")
+    cta = generer_call_to_action(kategori, språkvalg[språk])
+    st.text_area("Call-to-Action", cta, height=100)
+
 if st.button("Generer Bok"):
     st.info("Genererer boken, vennligst vent...")
-    valgt_språk = språkvalg[språk]
-    boktekst = generer_bok(kategori, antall_kapitler, valgt_språk)
-    txt_fil = lag_txt(kategori, boktekst)
+    boktekst = generer_tittel_og_beskrivelse(kategori, språkvalg[språk])
+    txt_fil = f"{kategori}.txt"
+    with open(txt_fil, "w", encoding="utf-8") as f:
+        f.write(boktekst)
 
     st.subheader("📖 Din Genererte Bok:")
     st.text_area("Boktekst", boktekst, height=500)
-
     st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
 
     omslag_fil = generer_omslag(kategori, kategori)
