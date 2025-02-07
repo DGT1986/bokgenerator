@@ -28,9 +28,19 @@ bestseller_nisjer = [
     "Reiseskildringer og nomadeliv"
 ]
 
+# Språkvalg for boken
+språkvalg = {
+    "Engelsk": "en",
+    "Spansk": "es",
+    "Tysk": "de",
+    "Fransk": "fr",
+    "Italiensk": "it",
+    "Norsk": "no"
+}
+
 # Funksjon for å generere SEO-optimalisert metadata
-def generer_metadata(tittel, nisje):
-    prompt = f"Generer en Amazon KDP-optimalisert beskrivelse og søkeord for boken '{tittel}' innen {nisje}. Bruk språket til bestselgere."
+def generer_metadata(tittel, nisje, språk):
+    prompt = f"Generer en Amazon KDP-optimalisert beskrivelse og søkeord for boken '{tittel}' innen {nisje}, skrevet på {språk}. Bruk språket til bestselgere."
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -40,9 +50,9 @@ def generer_metadata(tittel, nisje):
     
     return response.choices[0].message.content
 
-# Funksjon for å generere et bokomslag med DALL·E
-def generer_omslag(tittel):
-    prompt = f"Lag et bokomslag for en bestselgende bok med tittelen '{tittel}'. Omslaget bør være profesjonelt, minimalistisk og ha en moderne stil."
+# Funksjon for å generere et bokomslag med bedre KDP-optimalisering
+def generer_omslag(tittel, nisje):
+    prompt = f"Lag et bokomslag for en bestselgende bok med tittelen '{tittel}'. Omslaget skal være designet for Amazon KDP med høy kvalitet, gode kontraster, lettlest font og profesjonell layout. Boken er innen sjangeren {nisje}."
     
     response = client.images.generate(
         model="dall-e-3",
@@ -59,8 +69,8 @@ def generer_omslag(tittel):
     return filnavn
 
 # Funksjon for å generere bokinnhold
-def generer_bok(nisje, antall_kapitler):
-    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler."
+def generer_bok(nisje, antall_kapitler, språk):
+    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
     
     kapittel_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -70,10 +80,10 @@ def generer_bok(nisje, antall_kapitler):
     
     kapitler = kapittel_response.choices[0].message.content.split("\n")
 
-    bok_tekst = f"# {nisje} - AI-generert bok\n\n"
+    bok_tekst = f"# {nisje} - AI-generert bok ({språk})\n\n"
     for i, kapittel in enumerate(kapitler[:antall_kapitler]):
         if kapittel.strip():
-            kapittel_prompt = f"Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}. Inkluder actionable tips og eksempler."
+            kapittel_prompt = f"Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}, skrevet på {språk}. Inkluder actionable tips og eksempler."
             kapittel_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": kapittel_prompt}],
@@ -96,14 +106,16 @@ st.title("📖 AI Bestselger-Bokgenerator for Amazon KDP")
 
 nisje = st.selectbox("Velg en bestselger-nisje:", bestseller_nisjer)
 antall_kapitler = st.slider("Velg antall kapitler", min_value=3, max_value=10, value=5)
+språk = st.selectbox("Velg språk:", list(språkvalg.keys()))
 
 if st.button("Generer Bok"):
     if nisje:
         st.info("Genererer boken, vennligst vent...")
-        boktekst = generer_bok(nisje, antall_kapitler)
+        valgt_språk = språkvalg[språk]
+        boktekst = generer_bok(nisje, antall_kapitler, valgt_språk)
         txt_fil = lag_txt(nisje, boktekst)
-        metadata = generer_metadata(nisje, nisje)
-        omslag_fil = generer_omslag(nisje)
+        metadata = generer_metadata(nisje, nisje, valgt_språk)
+        omslag_fil = generer_omslag(nisje, nisje)
 
         st.subheader("Din genererte bok:")
         st.text_area("Boktekst", boktekst, height=500)
@@ -115,6 +127,6 @@ if st.button("Generer Bok"):
         st.text_area("Beskrivelse og nøkkelord", metadata, height=150)
 
         st.subheader("📘 Generert Bokomslag:")
-        st.image(omslag_fil, caption="Automatisk generert bokomslag")
+        st.image(omslag_fil, caption="Amazon KDP-optimalisert bokomslag")
     else:
         st.warning("Velg en nisje først.")
