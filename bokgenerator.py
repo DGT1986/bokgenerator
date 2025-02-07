@@ -99,22 +99,34 @@ if st.button("Generer Bok"):
     st.info("Genererer boken, vennligst vent...")
     valgt_språk = språkvalg[språk]
     
-    # Generer boktekst
-    boktekst = f"Generert boktekst for {kategori} på {språk}."  # Her skal genereringen av boken skje
-    txt_fil = f"{kategori}.txt"
-    with open(txt_fil, "w", encoding="utf-8") as f:
-        f.write(boktekst)
+    def generer_bok(nisje, antall_kapitler, språk):
+    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
+    
+    kapittel_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": kapittel_prompt}],
+        temperature=0.7
+    )
+    
+    kapitler = kapittel_response.choices[0].message.content.split("\n")
 
-    st.subheader("📖 Din Genererte Bok:")
-    st.text_area("Boktekst", boktekst, height=500)
-    st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
+    bok_tekst = f"# {nisje} - AI-generert bok ({språk})\n\n"
+    
+    for i, kapittel in enumerate(kapitler[:antall_kapitler]):
+        if kapittel.strip():
+            kapittel_prompt = f"""
+            Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}. 
+            Inkluder actionable tips, eksempler og praktiske øvelser. 
+            Skriv i en engasjerende og lettlest stil. Skriv på {språk}.
+            """
+            
+            kapittel_response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": kapittel_prompt}],
+                temperature=0.7
+            )
+            
+            kapittel_tekst = kapittel_response.choices[0].message.content
+            bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
 
-    if ekspertmodus:
-        st.subheader("💰 Anbefalt bokpris:")
-        prisstrategi = foreslå_bokpris(kategori, valgt_språk)
-        st.text_area("Prisstrategi", prisstrategi, height=100)
-
-    if analysemodus:
-        st.subheader("📊 Analyse av bokens salgspotensial:")
-        analyse_resultat = analyser_og_rate_bok(boktekst, kategori, valgt_språk)
-        st.text_area("Analyse og forbedringer", analyse_resultat, height=200)
+    return bok_tekst
