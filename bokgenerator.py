@@ -45,8 +45,11 @@ def generer_bok(nisje, antall_kapitler, språk):
     kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
     
     kapittel_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": kapittel_prompt}],
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": f"Svar alltid på {språk}."},
+            {"role": "user", "content": kapittel_prompt}
+        ],
         temperature=0.7
     )
     
@@ -59,12 +62,16 @@ def generer_bok(nisje, antall_kapitler, språk):
             kapittel_prompt = f"""
             Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}. 
             Inkluder actionable tips, eksempler og praktiske øvelser. 
-            Skriv i en engasjerende og lettlest stil. Skriv på {språk}.
+            Skriv i en engasjerende og lettlest stil. 
+            **Svar kun på {språk}.**
             """
             
             kapittel_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": kapittel_prompt}],
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": f"Svar alltid på {språk}."},
+                    {"role": "user", "content": kapittel_prompt}
+                ],
                 temperature=0.7
             )
             
@@ -72,53 +79,6 @@ def generer_bok(nisje, antall_kapitler, språk):
             bok_tekst += f"## Kapittel {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
 
     return bok_tekst
-
-# 🔹 Funksjon for å analysere og optimalisere bokens innhold
-def analyser_og_juster_bok(boktekst, nisje, språk):
-    prompt = f"""
-    Evaluer denne teksten opp mot bestselgende bøker innen {nisje} på Amazon KDP. 
-    Gi en score fra 1-100 basert på:
-    - Lesbarhet
-    - Engasjement
-    - SEO-optimalisering
-    - Kommersiell appell
-    
-    Deretter foreslå konkrete forbedringer og generer en optimalisert versjon av teksten. 
-    Skriv på {språk}.
-    
-    Tekst:
-    {boktekst}
-    """
-    
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    
-    return response.choices[0].message.content
-
-# 🔹 Funksjon for å generere et bokomslag tilpasset formål og målgruppe
-def generer_omslag(tittel, kategori):
-    prompt = f"""
-    Lag et profesjonelt bokomslag for boken '{tittel}', optimalisert for Amazon KDP. 
-    Designet bør være visuelt tiltalende for målgruppen til {kategori}-bøker. 
-    Inkluder farger, typografi og designstil som appellerer til lesere i denne nisjen.
-    """
-    
-    response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        size="1024x1024"
-    )
-    
-    image_url = response.data[0].url
-    image_response = requests.get(image_url)
-    image = Image.open(BytesIO(image_response.content))
-    
-    filnavn = f"{tittel}_omslag.jpg"
-    image.save(filnavn)
-    return filnavn
 
 # 🔹 Funksjon for å lage en nedlastbar tekstfil
 def lag_txt(boktittel, bokinnhold):
@@ -147,12 +107,3 @@ if st.button("Generer Bok"):
     st.subheader("📖 Din Genererte Bok:")
     st.text_area("Boktekst", boktekst, height=500)
     st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
-
-    if analysemodus:
-        st.subheader("📊 Optimalisert bokinnhold basert på analyse:")
-        optimalisert_tekst = analyser_og_juster_bok(boktekst, kategori, valgt_språk)
-        st.text_area("Optimalisert Boktekst", optimalisert_tekst, height=500)
-
-    st.subheader("📘 Generert Bokomslag:")
-    omslag_fil = generer_omslag(kategori, kategori)
-    st.image(omslag_fil, caption="Amazon KDP-optimalisert bokomslag")
