@@ -81,33 +81,29 @@ def generer_bok(nisje, antall_kapitler, språk):
 
     return bok_tekst
 
-# 🔹 Funksjon for å analysere og optimalisere bokens innhold
-def analyser_og_juster_bok(boktekst, nisje, språk):
+# 🔹 Funksjon for å generere bokomslag
+def generer_omslag(tittel, kategori):
     prompt = f"""
-    Evaluate this text compared to best-selling books in {nisje} on Amazon KDP.
-    Give a score from 1-100 based on:
-    - Readability
-    - Engagement
-    - SEO optimization
-    - Commercial appeal
-
-    Then suggest concrete improvements and generate an optimized version of the text.
-    **Respond only in {språk}.**
-
-    Text:
-    {boktekst}
+    Create a professional book cover for '{tittel}', optimized for Amazon KDP.
+    The design should match the target audience of {kategori} books.
+    Include colors, typography, and a style that appeals to readers in this niche.
     """
     
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": f"You are an expert in book writing. Always respond in {språk}."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=prompt,
+        size="1024x1024"
     )
     
-    return response.choices[0].message.content
+    if response and response.data:
+        image_url = response.data[0].url
+        image_response = requests.get(image_url)
+        image = Image.open(BytesIO(image_response.content))
+        filnavn = f"{tittel}_cover.jpg"
+        image.save(filnavn)
+        return filnavn
+    else:
+        return None
 
 # 🔹 Funksjon for å lagre bokteksten og holde den synlig etter nedlasting
 def lag_txt(boktittel, bokinnhold):
@@ -134,6 +130,10 @@ if st.button("Generate Book"):
 
     st.session_state["generated_text"] = boktekst  # Keeps text visible after download
 
+    # 📘 Generate and store book cover
+    omslag_fil = generer_omslag(kategori, kategori)
+    st.session_state["generated_cover"] = omslag_fil if omslag_fil else "No cover generated."
+
 # 📖 Display book text if it was generated
 if "generated_text" in st.session_state:
     st.subheader("📖 Your Generated Book:")
@@ -141,6 +141,11 @@ if "generated_text" in st.session_state:
 
     # 📥 Download button that does not reset the app
     st.download_button("📥 Download as TXT", txt_buffer, file_name=txt_filnavn, mime="text/plain")
+
+# 📘 Show book cover if generated
+if "generated_cover" in st.session_state and st.session_state["generated_cover"] != "No cover generated.":
+    st.subheader("📘 Generated Book Cover:")
+    st.image(st.session_state["generated_cover"], caption="Amazon KDP-optimized book cover")
 
 # 📊 Analysis Mode – keeps visible after download
 if analysemodus and "generated_text" in st.session_state:
