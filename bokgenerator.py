@@ -2,7 +2,6 @@ import openai
 import os
 import streamlit as st
 import requests
-from ebooklib import epub
 from dotenv import load_dotenv
 from PIL import Image
 from io import BytesIO
@@ -42,14 +41,12 @@ språkvalg = {
 
 # 🔹 Funksjon for å generere fullstendige kapitler på riktig språk
 def generer_bok(nisje, antall_kapitler, språk):
-    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Skriv på {språk}."
+    kapittel_prompt = f"Generer en kapitteloversikt for en bestselgende bok om {nisje} med {antall_kapitler} kapitler. Svar kun på {språk}."
     
     kapittel_response = client.chat.completions.create(
         model="gpt-4",
-        messages=[
-            {"role": "system", "content": f"Svar alltid på {språk}."},
-            {"role": "user", "content": kapittel_prompt}
-        ],
+        messages=[{"role": "system", "content": f"Du må alltid svare på {språk}."},
+                  {"role": "user", "content": kapittel_prompt}],
         temperature=0.7
     )
     
@@ -62,16 +59,14 @@ def generer_bok(nisje, antall_kapitler, språk):
             kapittel_prompt = f"""
             Skriv et detaljert kapittel med tittelen '{kapittel}' for en bestselgende bok om {nisje}. 
             Inkluder actionable tips, eksempler og praktiske øvelser. 
-            Skriv i en engasjerende og lettlest stil. 
+            Skriv i en engasjerende og lettlest stil.  
             **Svar kun på {språk}.**
             """
             
             kapittel_response = client.chat.completions.create(
                 model="gpt-4",
-                messages=[
-                    {"role": "system", "content": f"Svar alltid på {språk}."},
-                    {"role": "user", "content": kapittel_prompt}
-                ],
+                messages=[{"role": "system", "content": f"Du må alltid svare på {språk}."},
+                          {"role": "user", "content": kapittel_prompt}],
                 temperature=0.7
             )
             
@@ -80,7 +75,31 @@ def generer_bok(nisje, antall_kapitler, språk):
 
     return bok_tekst
 
-# 🔹 Funksjon for å lage en nedlastbar tekstfil
+# 🔹 Funksjon for å generere et bokomslag tilpasset formålet og målgruppen
+def generer_omslag(tittel, kategori):
+    prompt = f"""
+    Lag et profesjonelt bokomslag for boken '{tittel}', optimalisert for Amazon KDP.  
+    Designet bør passe målgruppen for {kategori}-bøker.  
+    Inkluder farger, typografi og stil som appellerer til denne nisjen.
+    """
+    
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=prompt,
+        size="1024x1024"
+    )
+    
+    if response and response.data:
+        image_url = response.data[0].url
+        image_response = requests.get(image_url)
+        image = Image.open(BytesIO(image_response.content))
+        filnavn = f"{tittel}_omslag.jpg"
+        image.save(filnavn)
+        return filnavn
+    else:
+        return None
+
+# 🔹 Funksjon for å lage en nedlastbar tekstfil og beholde funksjonene synlige
 def lag_txt(boktittel, bokinnhold):
     filnavn = f"{boktittel}.txt"
     with open(filnavn, "w", encoding="utf-8") as f:
@@ -106,4 +125,21 @@ if st.button("Generer Bok"):
 
     st.subheader("📖 Din Genererte Bok:")
     st.text_area("Boktekst", boktekst, height=500)
-    st.download_button("📥 Last ned som TXT", open(txt_fil, "rb"), file_name=txt_fil)
+
+    # 📥 Nedlastingsknapp, men bevarer andre funksjoner
+    with open(txt_fil, "rb") as f:
+        st.download_button("📥 Last ned som TXT", f, file_name=txt_fil)
+
+    # 📘 Generert Bokomslag
+    st.subheader("📘 Generert Bokomslag:")
+    omslag_fil = generer_omslag(kategori, kategori)
+    if omslag_fil:
+        st.image(omslag_fil, caption="Amazon KDP-optimalisert bokomslag")
+    else:
+        st.warning("Bokomslag kunne ikke genereres, prøv igjen.")
+
+    # 📊 Analysemodus
+    if analysemodus:
+        st.subheader("📊 Analyse av bokens salgspotensial:")
+        analyse_resultat = analyser_og_juster_bok(boktekst, kategori, valgt_språk)
+        st.text_area("Analyse og forbedringer", analyse_resultat, height=200)
