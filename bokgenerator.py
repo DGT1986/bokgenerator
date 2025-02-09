@@ -54,30 +54,31 @@ def generer_bok(nisje, antall_kapitler, språk):
         temperature=0.7
     )
     
-    kapitler = kapittel_response.choices[0].message.content.split("\n")
+    kapitler = [k.strip() for k in kapittel_response.choices[0].message.content.split("\n") if k.strip()]
 
-    bok_tekst = f"# {nisje} - AI-generated book ({språk})\n\n"
-    
+    bok_tekst = f"Title: {nisje} - A Self-Help Guide\n\n"
+
     for i, kapittel in enumerate(kapitler[:antall_kapitler]):
-        if kapittel.strip():
-            kapittel_prompt = f"""
-            Write a detailed chapter titled '{kapittel}' for a best-selling book about {nisje}.
-            Include actionable tips, examples, and practical exercises.
-            Write in an engaging and easy-to-read style.  
-            **Respond only in {språk}.**
-            """
-            
-            kapittel_response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": kapittel_prompt}
-                ],
-                temperature=0.7
-            )
-            
-            kapittel_tekst = kapittel_response.choices[0].message.content
-            bok_tekst += f"## Chapter {i+1}: {kapittel}\n\n{kapittel_tekst}\n\n"
+        kapittel_nummer = i + 1
+        kapittel_prompt = f"""
+        Write Chapter {kapittel_nummer} titled '{kapittel}' for a best-selling book about {nisje}.
+        - The chapter should include a clear introduction, actionable tips, and practical exercises.
+        - Each section should have an engaging heading.
+        - Avoid repeating "Chapter X" inside the chapter text.
+        **Respond only in {språk}.**
+        """
+        
+        kapittel_response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": kapittel_prompt}
+            ],
+            temperature=0.7
+        )
+        
+        kapittel_tekst = kapittel_response.choices[0].message.content
+        bok_tekst += f"Chapter {kapittel_nummer}: {kapittel}\n\n{kapittel_tekst}\n\n"
 
     return bok_tekst
 
@@ -89,14 +90,14 @@ def generer_omslag(tittel, kategori):
     Include colors, typography, and a style that appeals to readers in this niche.
     """
     
-    response = client.images.generate(
-        model="dall-e-3",
+    response = openai.Image.create(
         prompt=prompt,
+        n=1,
         size="1024x1024"
     )
     
-    if response and response.data:
-        image_url = response.data[0].url
+    if response and "data" in response:
+        image_url = response["data"][0]["url"]
         image_response = requests.get(image_url)
         image = Image.open(BytesIO(image_response.content))
         filnavn = f"{tittel}_cover.jpg"
